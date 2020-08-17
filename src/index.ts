@@ -1,25 +1,19 @@
 
 import express from "express";
 import http from "http";
-import socketIo from "socket.io";
-import CanvasesManager from "./CanvasesManager";
+import socketIoServer from "./socketIo/socketIoServer";
+import CanvasManager from "./classes/CanvasManager";
+import path from "path";
+
+const canvasManager = new CanvasManager;
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIoServer(server, canvasManager);
 
-const canvasesManager = new CanvasesManager;
-
-io.on("connection", socket => {
-    console.log("소켓만들어짐");
-    socket.on("ping", _ => {
-        console.log("핑옴");
-        socket.emit("pong", "HI");
-    });
-});
+// FOR TEST
+app.use(express.static(path.resolve(__dirname, "../static/")));
 
 server.listen(80, () => {
-    console.log("서버 돌림");
+    console.log("[express] 서버 돌림");
 });
-
-canvasesManager.getCanvas("https://www.naver.com/");

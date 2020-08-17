@@ -5,6 +5,9 @@ const NodemonPlugin = require('nodemon-webpack-plugin');
 module.exports = {
   entry: './src/index.ts',
   target: 'node',
+  node: {
+    __dirname: false
+  },
   module: {
     rules: [
       {

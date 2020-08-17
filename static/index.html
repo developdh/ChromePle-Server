@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+        #body {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="0" height="0"></canvas>
+    <input type="button" id="gogo" value="GOGO!">
+    <script>
+
+        function rgbToRGB(rgb) {
+            return [rgb>>4*2*2, (rgb>>4*2*1)%(16**2), rgb%(16**2)];
+        }
+
+        const socket = io();
+
+        socket.on("initCanvas", ({
+            width,
+            height,
+            dataURL
+        }) => {
+            canvas.width = width;
+            canvas.height = height;
+
+            const image = new Image(width, height);
+            image.src = dataURL;
+            image.addEventListener("load", () => {
+                ctx.drawImage(image, 0, 0);
+            });
+        });
+
+        socket.on("draw", ({
+            startX,
+            startY,
+            endX,
+            endY,
+            radius,
+            rgb,
+            alpha
+        }) => {
+            const [ r, g, b ] = rgbToRGB(rgb);
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            ctx.lineCap = "round";
+            ctx.lineWidth = radius;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+        })
+
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+
+        const radius = 30;
+        const rgb = 0xff6347;
+        const alpha = 1;
+
+        let mouseDowned = false;
+        const lastMouseXY = [];
+
+        canvas.addEventListener("mousedown", e => {
+            socket.emit("draw", {
+                startX: e.offsetX,
+                startY: e.offsetY,
+                endX: e.offsetX,
+                endY: e.offsetY,
+                radius: radius,
+                rgb: rgb,
+                alpha: alpha
+            });
+
+            mouseDowned = true;
+            lastMouseXY[0] = e.offsetX;
+            lastMouseXY[1] = e.offsetY;
+        });
+
+        canvas.addEventListener("mousemove", e => {
+            if(mouseDowned) {
+                socket.emit("draw", {
+                    startX: lastMouseXY[0],
+                    startY: lastMouseXY[1],
+                    endX: e.offsetX,
+                    endY: e.offsetY,
+                    radius: radius,
+                    rgb: rgb,
+                    alpha: alpha
+                });
+            }
+
+            lastMouseXY[0] = e.offsetX;
+            lastMouseXY[1] = e.offsetY;
+        });
+
+        canvas.addEventListener("mouseup", e => {
+            mouseDowned = false;
+        });
+
+
+        
+
+        // START BUTTON
+        const gogo = document.getElementById("gogo");
+        gogo.addEventListener("click", e => {
+            socket.emit("setUrl", "www.naver.com");
+        });
+    </script>
+</body>
+</html>
