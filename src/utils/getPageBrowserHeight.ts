@@ -23,6 +23,7 @@ async function getPageBrowserHeight(url : string) : Promise<number> {
     loggingPrefs.setLevel(Type.SERVER, Level.OFF);
 
     const options = new Options();
+    options.addArguments("no-sandbox", "disable-dev-shm-usage", "disable-gpu", "disable-extensions", "disable-setuid-sandbox");
     options.headless();
     options.windowSize({
         width: browserWidth,
@@ -34,7 +35,7 @@ async function getPageBrowserHeight(url : string) : Promise<number> {
     
     const driver = await driverBuilder.build();
     await driver.get(`http://${url}`);
-    await sleep(500);
+    await sleep(1000);
     const offsetHeight : number = await driver.executeScript("return document.body.offsetHeight");
 
     await driver.close();

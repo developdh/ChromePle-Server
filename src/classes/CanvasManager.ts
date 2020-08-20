@@ -8,7 +8,7 @@ class CanvasesManager {
     canvases : {[url : string] : Canvas} = {};
     private canvasIntervals : {[url : string] : NodeJS.Timeout} = {};
     constructor() {
-        getCanvasNames();
+
     }
     hasUrl(url : string) {
         return !!this.canvases[url];
@@ -23,22 +23,33 @@ class CanvasesManager {
         const pageBrowserWidth = browserWidth;
         const pageBrowserHeight = await getPageBrowserHeight(url);
         const canvas = this.canvases[url] = new Canvas(pageBrowserWidth, pageBrowserHeight);
-        if(checkCanvasExists(url)) {
+        if(await checkCanvasExists(url)) {
             const context = canvas.getContext("2d");
-            const image = await loadImage(getCanvasData(url));
+            const image = await loadImage(await getCanvasData(url));
+            if(image.height > canvas.height) canvas.height = image.height;
             context.drawImage(image, 0, 0);
         };
     }
     async unuseCanvas(url : string) {
         const canvas = this.canvases[url];
         delete this.canvases[url];
-        saveCanvasData(url, canvas.toBuffer());
+        await saveCanvasData(url, canvas.toBuffer());
         this.unregisterCanvas(url);
     }
     
     private registerCanvas(url : string, canvas : Canvas) {
-        this.canvasIntervals[url] = setInterval(() => {
-            saveCanvasData(url, canvas.toBuffer());
+        this.canvasIntervals[url] = setInterval(async () => {
+            await saveCanvasData(
+                url,
+                await new Promise((solve, reject) => {
+                    canvas.toBuffer((err: Error|null, result: Buffer) => {
+                        if(err)
+                            reject(err);
+                        else
+                            solve(result);
+                    })
+                })
+            );
         }, 10000);
     }
     private unregisterCanvas(url : string) {
