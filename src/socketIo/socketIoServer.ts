@@ -4,15 +4,22 @@ import http from "http";
 import CanvasManager from "../classes/CanvasManager";
 import { availableUrls } from "../consts/consts";
 
-type DrawData = {
+interface PenData {
     startX : number,
     startY : number,
     endX : number,
     endY : number,
-    radius: number,
+    radius: number
+}
+
+interface DrawData extends PenData {
     rgb: number,
     alpha: number
 };
+
+interface EraserDrawData extends PenData {
+
+}
 
 function rgbToRGB(rgb : number) {
     return [rgb>>4*2*2, (rgb>>4*2*1)%(16**2), rgb%(16**2)];
@@ -73,7 +80,7 @@ function socketIoServer(server : http.Server, canvasManager : CanvasManager) {
                 radius,
                 rgb,
                 alpha
-            } = {
+            } : DrawData = {
                 startX: 0,
                 startY: 0,
                 endX: 0,
@@ -88,6 +95,7 @@ function socketIoServer(server : http.Server, canvasManager : CanvasManager) {
             const ctx = canvas.getContext("2d");
             const [ r, g, b ] = rgbToRGB(rgb);
 
+            ctx.globalCompositeOperation = "source-over";
             ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
             ctx.lineCap = "round";
             ctx.lineWidth = radius;
@@ -107,8 +115,47 @@ function socketIoServer(server : http.Server, canvasManager : CanvasManager) {
             });
         });
 
-        socket.on("remove", async (drawData : DrawData) => {
-            
+        socket.on("erase", async (drawData : EraserDrawData) => {
+            if(typeof drawData != "object") return;
+            const url_roomName = getUrlRoomName(socket);
+            if(!url_roomName) return;
+
+            const url = url_roomName.substr(4);
+
+            const {
+                startX,
+                startY,
+                endX,
+                endY,
+                radius
+            } : EraserDrawData = {
+                startX: 0,
+                startY: 0,
+                endX: 0,
+                endY: 0,
+                radius: 0,
+                ...drawData
+            };
+
+            const canvas = await canvasManager.getCanvas(url);
+            const ctx = canvas.getContext("2d");
+
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.strokeStyle = `rgba(0, 0, 0, 1)`;
+            ctx.lineCap = "round";
+            ctx.lineWidth = radius;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            io.to(url_roomName).emit("erase", {
+                startX,
+                startY,
+                endX,
+                endY,
+                radius
+            });
         });
     });
 
