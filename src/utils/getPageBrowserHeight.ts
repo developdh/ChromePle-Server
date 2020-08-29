@@ -11,8 +11,6 @@ function sleep(ms : number) {
 }
 
 async function getPageBrowserHeight(url : string) : Promise<number> {
-    console.log("[selenium] 시작");
-
     const driverBuilder = await new Builder().forBrowser("chrome");
 
     const loggingPrefs = new Preferences();
@@ -36,10 +34,9 @@ async function getPageBrowserHeight(url : string) : Promise<number> {
     const driver = await driverBuilder.build();
     await driver.get(`http://${url}`);
     await sleep(1000);
-    const offsetHeight : number = await driver.executeScript("return document.body.offsetHeight");
+    const offsetHeight : number = await driver.executeScript("return Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight)");
 
     await driver.close();
-    console.log("[selenium] 종료");
 
     return offsetHeight;
 }

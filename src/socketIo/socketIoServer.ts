@@ -3,6 +3,7 @@ import socketIo, { Socket } from "socket.io";
 import http from "http";
 import CanvasManager from "../classes/CanvasManager";
 import { availableUrls } from "../consts/consts";
+import getPageBrowserHeight from "../utils/getPageBrowserHeight";
 
 interface PenData {
     startX : number,
@@ -40,8 +41,10 @@ function socketIoServer(server : http.Server, canvasManager : CanvasManager) {
         console.log("[socket.io] 소켓만들어짐");
         socket.on("setUrl", async (url : string) => {
             if(typeof url != "string") return;
-            if(!availableUrls.includes(url)) return;
+            // if(!availableUrls.includes(url)) return;
             if(hasUrlRoom(socket)) return;
+
+            url = encodeURIComponent(url);
 
             console.log(`[socket.io] setUrl :: ${url}`);
             socket.join(`URL_${url}`);
